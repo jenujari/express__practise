@@ -1,6 +1,7 @@
 const chai = require("chai");
 const request = require("supertest");
 
+const {sequlizeConn} = require("./../../sequelize");
 const app = require("./../../server");
 const {expect} = chai;
 const should = chai.should();
@@ -21,42 +22,34 @@ try {
   User = {};
 }
 
+describe("book api", () => {
+  before(async () => {
+    await sequlizeConn.sync();
+    await Book.destroy({where : {}, truncate:true});
+    await User.destroy({where : {}, truncate:true});
 
-
-describe("book api", async () => {
-  before(function(done) {
-    Book.destroy({where : {}, truncate:true});
-    User.destroy({where : {}, truncate:true});
-
-    User.create({
+    const user = await User.create({
       username:"123test",
       password:"123test",
       email:"test123@gmail.com"
-    }).then(function(user){
-      agent
-      .get("/signin")
-      .send({
-        username:user.username,
-        password:user.password
-      }).end(function(err,res){
-        expect(res.statusCode).to.equal(200);
-        expect('Location','/books');
-        done();
-      });
+    });
+    
+    // const res = await agent.post("/signin")
+    // .send({ username:user.username, password:user.password });
+
+    // console.log(JSON.stringify(res.body,null,2));
+    // expect(res.statusCode).to.equal(200);
+    // expect('Location','/books');
+  });
+  
+  describe("/Get books", () => {
+    it("Getting all books", async () => {
+      const res = await agent.get("/books");
+      expect(res.statusCode).to.equal(200);
+      expect(res.body).to.be.a('array');
     });
   });
   
-  describe("/Get books",function () {
-    it("Getting all books",function (done) {
-      agent.get("/books")
-      .end(function (err,res) {
-        res.should.have.status(200);
-        res.body.should.be.a('array');
-        done();        
-      });
-    });
-  });
-
   describe("/Post books",function () {
     it("Insert new book",function (done) {
       var book = {
@@ -64,12 +57,12 @@ describe("book api", async () => {
         author : "Chen Wei",
         category :"Biography" 
       };
-
+      
       agent.post("/books")
       .send(book)
       .end(function (err,res) {
-        res.should.have.status(200);
-        res.body.should.be.a('object');
+        expect(res.statusCode).to.equal(200);
+        expect(res.body).to.be.a('object');
         done();
       });
     });
@@ -85,19 +78,18 @@ describe("book api", async () => {
 
       Book.create(book)
       .then(function (_bk) {
-        agent.delete("/books"+ _bk.id)
+        agent.delete("/books/"+ _bk.id)
         .send(book)
         .end(function (err,res) {
-          res.should.have.status(200);
-          res.body.should.be.equal(1);
+          if(err) done(err);
+          expect(res.statusCode).to.equal(200);
+          expect(res.body).to.be.equal(true);
           done();
         });
-        
-      })
-
+      });
     });
   });
-  
+
   describe("/Get/:id books",function () {
     it("Get Book by id",function (done) {
       var book = {
@@ -110,8 +102,9 @@ describe("book api", async () => {
       .then(function (_bk) {
         agent.get("/books/" + _bk.id)
         .end(function (err,res) {
-          res.should.have.status(200);
-          res.body.should.be.a('object');
+          if(err) done(err);
+          expect(res.statusCode).to.equal(200);
+          expect(res.body).to.be.a('object');
           done();
         });
       })
@@ -120,21 +113,21 @@ describe("book api", async () => {
     it("Get Book by not existed id",function (done) {
       agent.get("/books/100")
       .end(function (err,res) {
-        res.should.have.status(400);
-        res.body.should.equal('Book not found');
+        expect(res.statusCode).to.equal(400);
+        expect(res.text).equal('Book not found');
         done();
       });
     });
     it("Get Book by invalid id",function (done) {
       agent.get("/books/abc")
       .end(function (err,res) {
-        res.should.have.status(400);
-        res.body.should.equal('Invalid id supplied');
+        expect(res.statusCode).to.equal(400);
+        expect(res.text).equal('Invalid id supplied');
         done();
       });
     });
   });
-  
+
   describe("/Put/:id books",function () {
     it("Update book by id",function (done) {
       var book = {
@@ -150,15 +143,15 @@ describe("book api", async () => {
 
       Book.create(book)
       .then(function (_bk){
-        agent.put("/books" + _bk.id)
+        agent.put("/books/" + _bk.id)
         .send(bookEdit)
         .end(function (err,res) {
-          res.should.have.status(200);
-          res.body.should.be.a('array');
+          expect(res.statusCode).to.equal(200);
+          expect(res.body).to.be.a('array');
           done();
         });
       });
     });
-  });
+  }); 
 
 });
