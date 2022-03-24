@@ -10,7 +10,6 @@ const app = express();
 const keys=["jkhiguuyfguyk"];
 const port = process.env.APP_PORT || 8080;
 const ENV = process.env.APP_ENV || "prod";
-
 const routesv1 = require("./routes");
 
 if(ENV === "dev") {
